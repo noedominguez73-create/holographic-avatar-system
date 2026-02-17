@@ -7,6 +7,14 @@ RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
     curl \
+    pkg-config \
+    libavformat-dev \
+    libavcodec-dev \
+    libavdevice-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libswresample-dev \
+    libavfilter-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements del orchestrator
