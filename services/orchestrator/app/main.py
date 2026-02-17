@@ -24,10 +24,18 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Lifecycle del servidor"""
     logger.info("Iniciando Holographic Avatar System...")
-    await init_db()
+    try:
+        await init_db()
+        logger.info("Base de datos conectada")
+    except Exception as e:
+        logger.warning(f"Base de datos no disponible: {e}")
+        logger.info("Continuando en modo sin BD (solo para pruebas)")
     yield
     logger.info("Cerrando Holographic Avatar System...")
-    await close_db()
+    try:
+        await close_db()
+    except:
+        pass
 
 
 app = FastAPI(
@@ -73,7 +81,13 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    import os
+    return {
+        "status": "healthy",
+        "service": "holographic-avatar-orchestrator",
+        "version": "1.0.0",
+        "environment": os.getenv("RAILWAY_ENVIRONMENT", "local")
+    }
 
 
 if __name__ == "__main__":
