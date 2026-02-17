@@ -1,0 +1,125 @@
+# =====================================================
+# HOLOGRAPHIC AVATAR SYSTEM - CONFIGURACIÓN
+# =====================================================
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  debug: true
+  workers: 4
+
+database:
+  url: "postgresql://holographic:holographic_secret@localhost:5432/holographic_avatar"
+  pool_size: 10
+  max_overflow: 20
+
+redis:
+  url: "redis://localhost:6379"
+  db: 0
+
+minio:
+  endpoint: "localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin123"
+  bucket: "holographic-content"
+  secure: false
+
+# Servicios AI (Linly-Talker)
+ai_services:
+  asr:
+    url: "http://localhost:8004"
+    model: "whisper-base"
+    language: "es"
+
+  llm:
+    url: "http://localhost:8002"
+    model: "Qwen"
+    model_path: "Qwen/Qwen-1_8B-Chat"
+    system_prompt: |
+      Eres un asistente virtual amigable y profesional.
+      Responde de manera concisa y útil.
+      Siempre mantén un tono cordial.
+
+  tts:
+    url: "http://localhost:8001"
+    engine: "edge-tts"
+    voice: "es-MX-DaliaNeural"
+    rate: "+0%"
+    volume: "+0%"
+
+  avatar:
+    url: "http://localhost:8003"
+    engine: "sadtalker"
+    preprocess: "crop"
+    still_mode: false
+
+# FasterLivePortrait
+animation:
+  url: "http://localhost:9871"
+  default_duration: 5.0
+  driving_preset: "natural"
+  output_fps: 25
+
+# Procesamiento de frames
+frame_processing:
+  target_resolution: 256
+  background_color: [0, 0, 0]
+  brightness_boost: 1.2
+  contrast_boost: 1.1
+  circular_crop: true
+
+# Encoder polar (ventilador)
+polar_encoder:
+  n_rays: 2700
+  n_leds: 224
+  dithering: "ordered"
+  bytes_per_ray: 42
+
+# Driver del ventilador
+fan_driver:
+  default_protocol: "tcp"
+  tcp_port: 5499
+  control_port: 5233
+  http_port: 80
+  packet_delay_ms: 30
+  reconnect_interval: 5
+  health_check_interval: 10
+
+# Modos de operación
+modes:
+  memorial:
+    enabled: true
+    animation_duration: 5
+    loop_count: 3
+    save_photos: true
+
+  receptionist:
+    enabled: true
+    idle_animation: "breathing"
+    greeting_message: "¡Hola! ¿En qué puedo ayudarte?"
+    farewell_message: "¡Hasta pronto!"
+    timeout_seconds: 30
+
+  menu:
+    enabled: true
+    show_prices: true
+    show_videos: true
+    recommendation_enabled: true
+
+  catalog:
+    enabled: true
+    show_stock: true
+    show_sizes: true
+    show_colors: true
+
+  videocall:
+    enabled: true
+    webrtc_stun: "stun:stun.l.google.com:19302"
+    max_fps: 15
+    audio_enabled: true
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/holographic.log"

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>Avatar Holográfico</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+    <link rel="apple-touch-icon" href="assets/icon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Pantalla de inicio -->
+    <div id="splash-screen" class="screen active">
+        <div class="splash-content">
+            <div class="hologram-ring"></div>
+            <h1 class="glow-text">AVATAR HOLOGRÁFICO</h1>
+            <p>Toca para comenzar</p>
+        </div>
+    </div>
+
+    <!-- Menú principal -->
+    <div id="main-menu" class="screen">
+        <header>
+            <h1>Selecciona una experiencia</h1>
+        </header>
+
+        <div class="mode-grid">
+            <div class="mode-card" data-mode="memorial">
+                <div class="mode-icon">📸</div>
+                <h2>Foto Memorial</h2>
+                <p>Anima una foto y tómate una selfie con el holograma</p>
+            </div>
+
+            <div class="mode-card" data-mode="receptionist">
+                <div class="mode-icon">🎙️</div>
+                <h2>Asistente Virtual</h2>
+                <p>Habla con nuestro asistente holográfico</p>
+            </div>
+
+            <div class="mode-card" data-mode="menu">
+                <div class="mode-icon">🍽️</div>
+                <h2>Menú Interactivo</h2>
+                <p>Explora nuestros platillos en 3D</p>
+            </div>
+
+            <div class="mode-card" data-mode="catalog">
+                <div class="mode-icon">👗</div>
+                <h2>Catálogo</h2>
+                <p>Descubre productos con ayuda virtual</p>
+            </div>
+
+            <div class="mode-card" data-mode="videocall">
+                <div class="mode-icon">📹</div>
+                <h2>Videollamada</h2>
+                <p>Conecta con una persona real</p>
+            </div>
+        </div>
+
+        <footer>
+            <div class="status-bar">
+                <span id="connection-status" class="status-indicator offline">● Desconectado</span>
+                <span id="device-status">Sin dispositivo</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modo Memorial -->
+    <div id="memorial-screen" class="screen mode-screen">
+        <header>
+            <button class="back-btn" data-back="main-menu">←</button>
+            <h1>Foto Memorial</h1>
+        </header>
+
+        <div class="memorial-content">
+            <div id="memorial-step-1" class="memorial-step active">
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">📷</div>
+                    <h2>Sube una foto</h2>
+                    <p>Toca aquí o arrastra una imagen</p>
+                    <input type="file" id="photo-input" accept="image/*" capture="environment">
+                </div>
+                <div id="photo-preview" class="photo-preview hidden">
+                    <img id="preview-img" src="" alt="Preview">
+                    <button class="btn-secondary" id="change-photo">Cambiar foto</button>
+                </div>
+                <button class="btn-primary" id="generate-avatar" disabled>Generar Avatar</button>
+            </div>
+
+            <div id="memorial-step-2" class="memorial-step">
+                <div class="processing-animation">
+                    <div class="spinner"></div>
+                    <h2>Creando tu avatar...</h2>
+                    <p id="processing-status">Detectando rostro...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="memorial-step-3" class="memorial-step">
+                <div class="success-message">
+                    <div class="success-icon">✨</div>
+                    <h2>¡Avatar listo!</h2>
+                    <p>Tu avatar está proyectándose en el holograma</p>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-primary" id="take-selfie">📸 Tomar Foto</button>
+                    <button class="btn-secondary" id="replay-avatar">🔄 Repetir</button>
+                </div>
+                <div id="selfie-preview" class="hidden">
+                    <img id="selfie-img" src="" alt="Selfie">
+                    <div class="selfie-actions">
+                        <button class="btn-primary" id="save-selfie">💾 Guardar</button>
+                        <button class="btn-secondary" id="retake-selfie">🔄 Otra vez</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modo Recepcionista -->
+    <div id="receptionist-screen" class="screen mode-screen">
+        <header>
+            <button class="back-btn" data-back="main-menu">←</button>
+            <h1>Asistente Virtual</h1>
+        </header>
+
+        <div class="chat-container">
+            <div class="avatar-display">
+                <div class="avatar-status">
+                    <span class="pulse-dot"></span>
+                    <span>Avatar activo</span>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chat-messages">
+                <div class="message assistant">
+                    <p>¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte?</p>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <button class="mic-button" id="mic-button">
+                    <span class="mic-icon">🎤</span>
+                    <span class="mic-text">Mantén presionado para hablar</span>
+                </button>
+                <div class="text-input-row">
+                    <input type="text" id="text-input" placeholder="O escribe tu mensaje...">
+                    <button class="send-button" id="send-button">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modo Menú -->
+    <div id="menu-screen" class="screen mode-screen">
+        <header>
+            <button class="back-btn" data-back="main-menu">←</button>
+            <h1>Menú Interactivo</h1>
+        </header>
+
+        <div class="menu-container">
+            <div class="categories-bar" id="categories-bar">
+                <!-- Categorías dinámicas -->
+            </div>
+
+            <div class="menu-items" id="menu-items">
+                <!-- Items dinámicos -->
+            </div>
+
+            <div class="item-detail hidden" id="item-detail">
+                <div class="item-detail-content">
+                    <button class="close-detail" id="close-detail">✕</button>
+                    <img id="detail-image" src="" alt="">
+                    <h2 id="detail-name"></h2>
+                    <p id="detail-description"></p>
+                    <div class="detail-price" id="detail-price"></div>
+                    <div class="detail-actions">
+                        <button class="btn-primary" id="show-in-hologram">
+                            ✨ Ver en Holograma
+                        </button>
+                        <button class="btn-secondary" id="play-video">
+                            ▶️ Ver Preparación
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modo Catálogo -->
+    <div id="catalog-screen" class="screen mode-screen">
+        <header>
+            <button class="back-btn" data-back="main-menu">←</button>
+            <h1>Catálogo</h1>
+        </header>
+
+        <div class="catalog-container">
+            <div class="search-bar">
+                <input type="text" id="product-search" placeholder="🔍 Buscar productos...">
+            </div>
+
+            <div class="filter-bar" id="filter-bar">
+                <button class="filter-chip active" data-filter="all">Todos</button>
+                <!-- Filtros dinámicos -->
+            </div>
+
+            <div class="products-grid" id="products-grid">
+                <!-- Productos dinámicos -->
+            </div>
+
+            <div class="product-detail hidden" id="product-detail">
+                <div class="product-detail-content">
+                    <button class="close-detail" id="close-product-detail">✕</button>
+                    <div class="product-images" id="product-images">
+                        <!-- Galería de imágenes -->
+                    </div>
+                    <h2 id="product-name"></h2>
+                    <p id="product-description"></p>
+                    <div class="product-price" id="product-price"></div>
+                    <div class="product-options">
+                        <div class="option-group">
+                            <label>Talla:</label>
+                            <div class="size-buttons" id="size-buttons"></div>
+                        </div>
+                        <div class="option-group">
+                            <label>Color:</label>
+                            <div class="color-buttons" id="color-buttons"></div>
+                        </div>
+                    </div>
+                    <div class="stock-status" id="stock-status"></div>
+                    <button class="btn-primary" id="show-product-hologram">
+                        ✨ Ver en Holograma 3D
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modo Videollamada -->
+    <div id="videocall-screen" class="screen mode-screen">
+        <header>
+            <button class="back-btn" data-back="main-menu">←</button>
+            <h1>Videollamada</h1>
+        </header>
+
+        <div class="videocall-container">
+            <div id="videocall-idle" class="videocall-state active">
+                <div class="videocall-icon">📹</div>
+                <h2>Videollamada en Vivo</h2>
+                <p>Conecta con una persona real que aparecerá en el holograma</p>
+                <input type="text" id="caller-id" placeholder="Tu nombre o ID">
+                <button class="btn-primary" id="start-call">Iniciar Llamada</button>
+            </div>
+
+            <div id="videocall-connecting" class="videocall-state">
+                <div class="spinner"></div>
+                <h2>Conectando...</h2>
+                <p>Esperando conexión</p>
+            </div>
+
+            <div id="videocall-active" class="videocall-state">
+                <div class="call-info">
+                    <span class="call-duration" id="call-duration">00:00</span>
+                    <span class="call-status">● En llamada</span>
+                </div>
+                <video id="local-video" autoplay muted playsinline></video>
+                <div class="call-controls">
+                    <button class="control-btn" id="toggle-mic">🎤</button>
+                    <button class="control-btn end-call" id="end-call">📞</button>
+                    <button class="control-btn" id="toggle-camera">📷</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de configuración -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Configuración</h2>
+            <div class="setting-group">
+                <label>Servidor API:</label>
+                <input type="text" id="api-url" value="http://localhost:8000">
+            </div>
+            <div class="setting-group">
+                <label>Dispositivo (IP):</label>
+                <input type="text" id="device-ip" value="192.168.4.1">
+            </div>
+            <div class="setting-group">
+                <label>Idioma:</label>
+                <select id="language">
+                    <option value="es">Español</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="close-settings">Cancelar</button>
+                <button class="btn-primary" id="save-settings">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón de configuración flotante -->
+    <button class="settings-fab" id="settings-fab">⚙️</button>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('SW registrado:', reg.scope))
+                .catch(err => console.log('SW error:', err));
+        }
+    </script>
+</body>
+</html>

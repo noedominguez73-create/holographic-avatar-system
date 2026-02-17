@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # BASE DE DATOS
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: holo-postgres
+    environment:
+      POSTGRES_USER: holographic
+      POSTGRES_PASSWORD: holographic_secret
+      POSTGRES_DB: holographic_avatar
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U holographic -d holographic_avatar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: holo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: holo-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # ============================================
+  # SERVICIOS PRINCIPALES
+  # ============================================
+  orchestrator:
+    build:
+      context: ./services/orchestrator
+      dockerfile: Dockerfile
+    container_name: holo-orchestrator
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://holographic:holographic_secret@postgres:5432/holographic_avatar
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - FASTER_LIVEPORTRAIT_URL=http://host.docker.internal:9871
+      - LINLY_TTS_URL=http://host.docker.internal:8001
+      - LINLY_LLM_URL=http://host.docker.internal:8002
+      - LINLY_AVATAR_URL=http://host.docker.internal:8003
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/orchestrator:/app
+      - shared_content:/app/content
+
+  frame-processor:
+    build:
+      context: ./services/frame-processor
+      dockerfile: Dockerfile
+    container_name: holo-frame-processor
+    ports:
+      - "8010:8010"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - shared_content:/app/content
+
+  polar-encoder:
+    build:
+      context: ./services/polar-encoder
+      dockerfile: Dockerfile
+    container_name: holo-polar-encoder
+    ports:
+      - "8011:8011"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - shared_content:/app/content
+
+  fan-driver:
+    build:
+      context: ./services/fan-driver
+      dockerfile: Dockerfile
+    container_name: holo-fan-driver
+    ports:
+      - "8012:8012"
+    environment:
+      - DATABASE_URL=postgresql://holographic:holographic_secret@postgres:5432/holographic_avatar
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    network_mode: "host"  # Necesario para comunicación con ventiladores en red local
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  shared_content:
+
+networks:
+  default:
+    name: holographic-network
