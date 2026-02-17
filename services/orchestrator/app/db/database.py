@@ -17,7 +17,8 @@ engine = create_async_engine(
     DATABASE_URL,
     echo=settings.debug,
     pool_size=10,
-    max_overflow=20
+    max_overflow=20,
+    connect_args={"timeout": 5}
 )
 
 AsyncSessionLocal = async_sessionmaker(
