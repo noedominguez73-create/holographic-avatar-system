@@ -1,5 +1,6 @@
 """
 Conexión a base de datos PostgreSQL con SQLAlchemy async
+v2 - Con reintentos y no-bloqueante
 """
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
