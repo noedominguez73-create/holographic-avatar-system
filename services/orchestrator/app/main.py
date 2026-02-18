@@ -23,10 +23,17 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Lifecycle del servidor"""
     logger.info("Iniciando Holographic Avatar System...")
-    await init_db()
+    try:
+        await init_db()
+    except Exception as e:
+        logger.error(f"Error en init_db (no fatal): {e}")
+    logger.info("Servidor listo para recibir requests")
     yield
     logger.info("Cerrando Holographic Avatar System...")
-    await close_db()
+    try:
+        await close_db()
+    except Exception as e:
+        logger.error(f"Error en close_db: {e}")
 
 
 app = FastAPI(
