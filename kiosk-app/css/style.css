@@ -369,6 +369,57 @@ footer {
     border: 3px solid var(--accent-primary);
 }
 
+/* Camera Preview Container - Memorial Mode */
+#camera-preview-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin: 20px 0;
+    padding: 20px;
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--accent-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+#selfie-video {
+    width: 100%;
+    max-width: 400px;
+    border-radius: var(--border-radius);
+    border: 3px solid var(--accent-primary);
+    background: #000;
+    transform: scaleX(-1); /* Mirror for selfie */
+}
+
+#selfie-canvas {
+    display: none;
+}
+
+.camera-actions {
+    display: flex;
+    gap: 15px;
+}
+
+#selfie-preview {
+    margin: 20px 0;
+    text-align: center;
+}
+
+#selfie-preview img {
+    max-width: 350px;
+    max-height: 350px;
+    border-radius: var(--border-radius);
+    border: 3px solid var(--accent-primary);
+    margin-bottom: 15px;
+}
+
+.selfie-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
 .hidden {
     display: none !important;
 }
@@ -1007,10 +1058,33 @@ footer {
     display: flex;
     gap: 15px;
     margin-top: 25px;
+    flex-wrap: wrap;
 }
 
 .modal-actions button {
     flex: 1;
+}
+
+.btn-admin {
+    width: 100%;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #7b2fff 0%, #00d4ff 100%);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 10px;
+}
+
+.btn-admin:hover {
+    box-shadow: 0 0 20px rgba(123, 47, 255, 0.4);
+    transform: translateY(-2px);
 }
 
 /* ==========================================

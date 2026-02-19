@@ -112,6 +112,14 @@
                     <button class="btn-primary" id="take-selfie">📸 Tomar Foto</button>
                     <button class="btn-secondary" id="replay-avatar">🔄 Repetir</button>
                 </div>
+                <div id="camera-preview-container" class="hidden">
+                    <video id="selfie-video" autoplay playsinline muted></video>
+                    <div class="camera-actions">
+                        <button class="btn-primary" id="capture-photo-btn">📸 Capturar</button>
+                        <button class="btn-secondary" id="cancel-camera-btn">✕ Cancelar</button>
+                    </div>
+                </div>
+                <canvas id="selfie-canvas" class="hidden"></canvas>
                 <div id="selfie-preview" class="hidden">
                     <img id="selfie-img" src="" alt="Selfie">
                     <div class="selfie-actions">
@@ -299,6 +307,7 @@
                 </select>
             </div>
             <div class="modal-actions">
+                <a href="admin.html" class="btn-admin">⚙️ Panel de Administración</a>
                 <button class="btn-secondary" id="close-settings">Cancelar</button>
                 <button class="btn-primary" id="save-settings">Guardar</button>
             </div>

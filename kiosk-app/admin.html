@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>Panel de Administración - Avatar Holográfico</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Modal de PIN -->
+    <div id="pin-modal" class="modal active">
+        <div class="modal-content pin-modal-content">
+            <div class="pin-header">
+                <div class="pin-icon">🔐</div>
+                <h2>Acceso Administrador</h2>
+                <p>Ingresa el PIN de acceso</p>
+            </div>
+            <div class="pin-display">
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+            </div>
+            <div id="pin-error" class="pin-error hidden">PIN incorrecto</div>
+            <div class="pin-keypad">
+                <button class="pin-key" data-key="1">1</button>
+                <button class="pin-key" data-key="2">2</button>
+                <button class="pin-key" data-key="3">3</button>
+                <button class="pin-key" data-key="4">4</button>
+                <button class="pin-key" data-key="5">5</button>
+                <button class="pin-key" data-key="6">6</button>
+                <button class="pin-key" data-key="7">7</button>
+                <button class="pin-key" data-key="8">8</button>
+                <button class="pin-key" data-key="9">9</button>
+                <button class="pin-key" data-key="clear">C</button>
+                <button class="pin-key" data-key="0">0</button>
+                <button class="pin-key" data-key="back">←</button>
+            </div>
+            <a href="index.html" class="back-link">← Volver al Kiosk</a>
+        </div>
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div id="dashboard" class="hidden">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="header-left">
+                <div class="logo">⚙️</div>
+                <h1>Panel de Administración</h1>
+            </div>
+            <div class="header-right">
+                <span id="last-update">Última actualización: --:--</span>
+                <button id="logout-btn" class="btn-icon" title="Cerrar sesión">🚪</button>
+            </div>
+        </header>
+
+        <!-- Navegación por Tabs -->
+        <nav class="admin-nav">
+            <button class="nav-tab active" data-tab="system">Sistema</button>
+            <button class="nav-tab" data-tab="devices">Dispositivos</button>
+            <button class="nav-tab" data-tab="sessions">Sesiones</button>
+            <button class="nav-tab" data-tab="modes">Modos</button>
+            <button class="nav-tab" data-tab="ai">AI</button>
+            <button class="nav-tab" data-tab="processing">Procesamiento</button>
+            <button class="nav-tab" data-tab="content">Contenido</button>
+            <button class="nav-tab" data-tab="settings">Ajustes</button>
+        </nav>
+
+        <!-- Contenido de los Tabs -->
+        <main class="admin-content">
+            <!-- Tab: Sistema -->
+            <section id="tab-system" class="tab-panel active">
+                <div class="panel-header">
+                    <h2>Estado del Sistema</h2>
+                    <button id="refresh-health" class="btn-primary">🔄 Actualizar</button>
+                </div>
+                <div class="services-grid" id="services-grid">
+                    <!-- Servicios principales -->
+                    <div class="service-card" data-service="orchestrator">
+                        <div class="service-status offline"></div>
+                        <div class="service-info">
+                            <h3>Orchestrator</h3>
+                            <span class="service-port">:8000</span>
+                        </div>
+                    </div>
+                    <div class="service-card" data-service="frame-processor">
+                        <div class="service-status offline"></div>
+                        <div class="service-info">
+                            <h3>Frame Processor</h3>
+                            <span class="service-port">:8010</span>
+                        </div>
+                    </div>
+                    <div class="service-card" data-service="polar-encoder">
+                        <div class="service-status offline"></div>
+                        <div class="service-info">
+                            <h3>Polar Encoder</h3>
+                            <span class="service-port">:8011</span>
+                        </div>
+                    </div>
+                    <div class="service-card" data-service="fan-driver">
+                        <div class="service-status offline"></div>
+                        <div class="service-info">
+                            <h3>Fan Driver</h3>
+                            <span class="service-port">:8012</span>
+                        </div>
+                    </div>
+                    <!-- Servicios AI -->
+                    <div class="service-card" data-service="linly-tts">
+                        <div class="service-status offline"></div>
+                        <div class="service-info">
+                            <h3>Linly TTS</h3>
+                            <span class="service-port">:8001</span>
+                        </div>
+                    </div>
+                    <div class="service-card" data-service="linly-llm">
+                        <div class="service-status offline"></div>
+                        <div class="service-info">
+                            <h3>Linly LLM</h3>
+                            <span class="service-port">:8002</span>
+                        </div>
+                    </div>
+                    <div class="service-card" data-service="linly-asr">
+                        <div class="service-status offline"></div>
+                        <div class="service-info">
+                            <h3>Linly ASR</h3>
+                            <span class="service-port">:8004</span>
+                        </div>
+                    </div>
+                    <div class="service-card" data-service="faster-liveportrait">
+                        <div class="service-status offline"></div>
+                        <div class="service-info">
+                            <h3>FasterLivePortrait</h3>
+                            <span class="service-port">:9871</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Resumen del sistema -->
+                <div class="system-summary">
+                    <div class="summary-card">
+                        <span class="summary-value" id="online-count">0</span>
+                        <span class="summary-label">Servicios Online</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="devices-count">0</span>
+                        <span class="summary-label">Dispositivos</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="sessions-count">0</span>
+                        <span class="summary-label">Sesiones Activas</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Dispositivos -->
+            <section id="tab-devices" class="tab-panel">
+                <div class="panel-header">
+                    <h2>Dispositivos (Ventiladores)</h2>
+                    <button id="add-device-btn" class="btn-primary">+ Agregar Dispositivo</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>IP</th>
+                                <th>Estado</th>
+                                <th>Protocolo</th>
+                                <th>Último Ping</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devices-table-body">
+                            <tr class="empty-row">
+                                <td colspan="6">Cargando dispositivos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Tab: Sesiones -->
+            <section id="tab-sessions" class="tab-panel">
+                <div class="panel-header">
+                    <h2>Sesiones Activas</h2>
+                    <button id="refresh-sessions" class="btn-secondary">🔄 Actualizar</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Dispositivo</th>
+                                <th>Modo</th>
+                                <th>Inicio</th>
+                                <th>Duración</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessions-table-body">
+                            <tr class="empty-row">
+                                <td colspan="5">No hay sesiones activas</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Tab: Modos -->
+            <section id="tab-modes" class="tab-panel">
+                <div class="panel-header">
+                    <h2>Configuración de Modos</h2>
+                </div>
+                <div class="modes-accordion">
+                    <!-- Memorial -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">
+                            <span class="mode-icon">📸</span>
+                            <span>Foto Memorial</span>
+                            <span class="accordion-arrow">▼</span>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="form-group">
+                                <label>Duración de animación (segundos)</label>
+                                <input type="range" id="memorial-duration" min="3" max="15" value="5">
+                                <span class="range-value">5s</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Repeticiones (loop)</label>
+                                <input type="number" id="memorial-loops" min="1" max="10" value="3">
+                            </div>
+                            <div class="form-group">
+                                <label>Preset de movimiento</label>
+                                <select id="memorial-preset">
+                                    <option value="natural">Natural</option>
+                                    <option value="expressive">Expresivo</option>
+                                    <option value="subtle">Sutil</option>
+                                </select>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="memorial-save-photos" checked>
+                                <label for="memorial-save-photos">Guardar fotos de selfie</label>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Recepcionista -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">
+                            <span class="mode-icon">🎙️</span>
+                            <span>Asistente Virtual</span>
+                            <span class="accordion-arrow">▼</span>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="form-group">
+                                <label>Mensaje de saludo</label>
+                                <textarea id="receptionist-greeting" rows="2">¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte?</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Mensaje de despedida</label>
+                                <textarea id="receptionist-farewell" rows="2">¡Hasta pronto! Fue un placer ayudarte.</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Timeout de inactividad (segundos)</label>
+                                <input type="range" id="receptionist-timeout" min="10" max="120" value="30">
+                                <span class="range-value">30s</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Animación idle</label>
+                                <select id="receptionist-idle">
+                                    <option value="breathing">Respiración</option>
+                                    <option value="blinking">Parpadeo</option>
+                                    <option value="subtle">Sutil</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Menú -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">
+                            <span class="mode-icon">🍽️</span>
+                            <span>Menú Interactivo</span>
+                            <span class="accordion-arrow">▼</span>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="menu-show-prices" checked>
+                                <label for="menu-show-prices">Mostrar precios</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="menu-show-videos" checked>
+                                <label for="menu-show-videos">Mostrar videos de preparación</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="menu-recommendations" checked>
+                                <label for="menu-recommendations">Habilitar recomendaciones</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="menu-narration" checked>
+                                <label for="menu-narration">Narración automática</label>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Catálogo -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">
+                            <span class="mode-icon">👗</span>
+                            <span>Catálogo</span>
+                            <span class="accordion-arrow">▼</span>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="catalog-show-stock" checked>
+                                <label for="catalog-show-stock">Mostrar disponibilidad de stock</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="catalog-show-sizes" checked>
+                                <label for="catalog-show-sizes">Mostrar tallas disponibles</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="catalog-show-colors" checked>
+                                <label for="catalog-show-colors">Mostrar colores</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="catalog-3d-rotation">
+                                <label for="catalog-3d-rotation">Rotación 3D automática</label>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Videollamada -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">
+                            <span class="mode-icon">📹</span>
+                            <span>Videollamada</span>
+                            <span class="accordion-arrow">▼</span>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="form-group">
+                                <label>FPS máximo</label>
+                                <input type="range" id="videocall-fps" min="5" max="30" value="15">
+                                <span class="range-value">15 FPS</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Calidad de video</label>
+                                <select id="videocall-quality">
+                                    <option value="low">Baja (256p)</option>
+                                    <option value="medium" selected>Media (480p)</option>
+                                    <option value="high">Alta (720p)</option>
+                                </select>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="videocall-audio" checked>
+                                <label for="videocall-audio">Audio habilitado</label>
+                            </div>
+                            <div class="form-group">
+                                <label>Servidor STUN</label>
+                                <input type="text" id="videocall-stun" value="stun:stun.l.google.com:19302">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button id="save-modes-btn" class="btn-primary">💾 Guardar Configuración de Modos</button>
+            </section>
+
+            <!-- Tab: AI -->
+            <section id="tab-ai" class="tab-panel">
+                <div class="panel-header">
+                    <h2>Configuración de AI</h2>
+                </div>
+                <div class="ai-grid">
+                    <!-- TTS -->
+                    <div class="ai-card">
+                        <h3>🔊 TTS (Texto a Voz)</h3>
+                        <div class="form-group">
+                            <label>Motor</label>
+                            <select id="tts-engine">
+                                <option value="edge-tts" selected>Edge TTS</option>
+                                <option value="cosyvoice">CosyVoice</option>
+                                <option value="gpt-sovits">GPT-SoVITS</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Voz</label>
+                            <select id="tts-voice">
+                                <option value="es-MX-DaliaNeural">Dalia (MX)</option>
+                                <option value="es-MX-JorgeNeural">Jorge (MX)</option>
+                                <option value="es-ES-ElviraNeural">Elvira (ES)</option>
+                                <option value="es-ES-AlvaroNeural">Alvaro (ES)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Velocidad: <span id="tts-rate-value">0%</span></label>
+                            <input type="range" id="tts-rate" min="-50" max="50" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Volumen: <span id="tts-volume-value">100%</span></label>
+                            <input type="range" id="tts-volume" min="0" max="100" value="100">
+                        </div>
+                    </div>
+                    <!-- LLM -->
+                    <div class="ai-card">
+                        <h3>🧠 LLM (Modelo de Lenguaje)</h3>
+                        <div class="form-group">
+                            <label>Modelo</label>
+                            <select id="llm-model">
+                                <option value="qwen" selected>Qwen</option>
+                                <option value="qwen2">Qwen 2</option>
+                                <option value="chatglm">ChatGLM</option>
+                                <option value="gemini">Gemini</option>
+                                <option value="gpt">GPT-3.5</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Temperature: <span id="llm-temperature-value">0.7</span></label>
+                            <input type="range" id="llm-temperature" min="0" max="100" value="70">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Tokens: <span id="llm-max-tokens-value">512</span></label>
+                            <input type="range" id="llm-max-tokens" min="128" max="2048" value="512" step="64">
+                        </div>
+                    </div>
+                    <!-- ASR -->
+                    <div class="ai-card">
+                        <h3>🎤 ASR (Reconocimiento de Voz)</h3>
+                        <div class="form-group">
+                            <label>Modelo</label>
+                            <select id="asr-model">
+                                <option value="whisper-tiny">Whisper Tiny</option>
+                                <option value="whisper-base" selected>Whisper Base</option>
+                                <option value="whisper-small">Whisper Small</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Idioma</label>
+                            <select id="asr-language">
+                                <option value="es" selected>Español</option>
+                                <option value="en">English</option>
+                                <option value="zh">中文</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Avatar -->
+                    <div class="ai-card">
+                        <h3>👤 Avatar (Animación)</h3>
+                        <div class="form-group">
+                            <label>Motor</label>
+                            <select id="avatar-engine">
+                                <option value="sadtalker" selected>SadTalker</option>
+                                <option value="wav2lip">Wav2Lip</option>
+                                <option value="musetalk">MuseTalk</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Preprocess</label>
+                            <select id="avatar-preprocess">
+                                <option value="crop" selected>Crop</option>
+                                <option value="resize">Resize</option>
+                                <option value="full">Full</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Output FPS: <span id="avatar-fps-value">25</span></label>
+                            <input type="range" id="avatar-fps" min="15" max="30" value="25">
+                        </div>
+                    </div>
+                </div>
+                <button id="save-ai-btn" class="btn-primary">💾 Guardar Configuración AI</button>
+            </section>
+
+            <!-- Tab: Procesamiento -->
+            <section id="tab-processing" class="tab-panel">
+                <div class="panel-header">
+                    <h2>Procesamiento de Imagen</h2>
+                </div>
+                <div class="processing-grid">
+                    <!-- Frame Processor -->
+                    <div class="processing-card">
+                        <h3>🖼️ Frame Processor</h3>
+                        <div class="form-group">
+                            <label>Resolución objetivo: <span id="fp-resolution-value">256px</span></label>
+                            <input type="range" id="fp-resolution" min="128" max="512" value="256" step="32">
+                        </div>
+                        <div class="form-group">
+                            <label>Boost de brillo: <span id="fp-brightness-value">1.2</span></label>
+                            <input type="range" id="fp-brightness" min="50" max="200" value="120">
+                        </div>
+                        <div class="form-group">
+                            <label>Boost de contraste: <span id="fp-contrast-value">1.1</span></label>
+                            <input type="range" id="fp-contrast" min="50" max="200" value="110">
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="fp-circular" checked>
+                            <label for="fp-circular">Recorte circular</label>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="fp-remove-bg" checked>
+                            <label for="fp-remove-bg">Eliminar fondo</label>
+                        </div>
+                    </div>
+                    <!-- Polar Encoder -->
+                    <div class="processing-card">
+                        <h3>🔄 Polar Encoder</h3>
+                        <div class="form-group">
+                            <label>Rayos angulares</label>
+                            <input type="text" value="2700" disabled class="disabled-input">
+                            <small>Posiciones por rotación (fijo)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>LEDs por rayo</label>
+                            <input type="text" value="224" disabled class="disabled-input">
+                            <small>Hardware del propeller (fijo)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Modo de dithering</label>
+                            <select id="pe-dithering">
+                                <option value="ordered" selected>Ordenado (mejor)</option>
+                                <option value="random">Aleatorio</option>
+                                <option value="floyd-steinberg">Floyd-Steinberg</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button id="save-processing-btn" class="btn-primary">💾 Guardar Configuración</button>
+            </section>
+
+            <!-- Tab: Contenido -->
+            <section id="tab-content" class="tab-panel">
+                <div class="panel-header">
+                    <h2>Gestión de Contenido</h2>
+                    <div class="header-actions">
+                        <select id="avatar-filter">
+                            <option value="">Todos los tipos</option>
+                            <option value="receptionist">Recepcionista</option>
+                            <option value="memorial">Memorial</option>
+                            <option value="menu">Menú</option>
+                            <option value="catalog">Catálogo</option>
+                            <option value="custom">Personalizados</option>
+                        </select>
+                        <button id="upload-avatar-btn" class="btn-primary">+ Subir Avatar</button>
+                    </div>
+                </div>
+                <div class="avatars-grid" id="avatars-grid">
+                    <div class="avatar-card placeholder">
+                        <div class="avatar-placeholder">Cargando avatares...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Ajustes -->
+            <section id="tab-settings" class="tab-panel">
+                <div class="panel-header">
+                    <h2>Ajustes del Dashboard</h2>
+                </div>
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h3>🔐 Seguridad</h3>
+                        <div class="form-group">
+                            <label>Cambiar PIN de acceso</label>
+                            <input type="password" id="new-pin" placeholder="Nuevo PIN (4-6 dígitos)" maxlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirmar PIN</label>
+                            <input type="password" id="confirm-pin" placeholder="Confirmar PIN" maxlength="6">
+                        </div>
+                        <button id="change-pin-btn" class="btn-secondary">Cambiar PIN</button>
+                    </div>
+                    <div class="settings-card">
+                        <h3>🌐 Conexión</h3>
+                        <div class="form-group">
+                            <label>URL del servidor API</label>
+                            <input type="text" id="settings-api-url" value="http://localhost:8000">
+                        </div>
+                        <div class="form-group">
+                            <label>IP del ventilador por defecto</label>
+                            <input type="text" id="settings-fan-ip" value="192.168.4.1">
+                        </div>
+                        <button id="save-connection-btn" class="btn-secondary">Guardar Conexión</button>
+                    </div>
+                    <div class="settings-card">
+                        <h3>⏱️ Sesión</h3>
+                        <div class="form-group">
+                            <label>Timeout de sesión (minutos)</label>
+                            <input type="number" id="session-timeout" value="30" min="5" max="120">
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="auto-refresh" checked>
+                            <label for="auto-refresh">Auto-actualizar estado (cada 10s)</label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Agregar/Editar Dispositivo -->
+    <div id="device-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="device-modal-title">Agregar Dispositivo</h2>
+                <button class="modal-close" data-close="device-modal">×</button>
+            </div>
+            <form id="device-form">
+                <input type="hidden" id="device-id">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="device-name" required placeholder="Ventilador Principal">
+                </div>
+                <div class="form-group">
+                    <label>Dirección IP</label>
+                    <input type="text" id="device-ip" required placeholder="192.168.4.1" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Protocolo</label>
+                        <select id="device-protocol">
+                            <option value="tcp">TCP</option>
+                            <option value="http">HTTP</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Puerto TCP</label>
+                        <input type="number" id="device-tcp-port" value="5499">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" data-close="device-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Subir Avatar -->
+    <div id="avatar-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Subir Nuevo Avatar</h2>
+                <button class="modal-close" data-close="avatar-modal">×</button>
+            </div>
+            <form id="avatar-form">
+                <div class="form-group">
+                    <label>Imagen del avatar</label>
+                    <div class="file-upload" id="file-upload-area">
+                        <input type="file" id="avatar-file" accept="image/*" required>
+                        <label for="avatar-file" class="file-upload-label">
+                            <span class="upload-icon">📷</span>
+                            <span>Haz clic para seleccionar imagen</span>
+                        </label>
+                        <div class="file-upload-preview" id="avatar-preview"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="avatar-name" required placeholder="Mi Avatar">
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="avatar-type">
+                        <option value="custom">Personalizado</option>
+                        <option value="receptionist">Recepcionista</option>
+                        <option value="memorial">Memorial</option>
+                        <option value="menu">Menú</option>
+                        <option value="catalog">Catálogo</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" data-close="avatar-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary">Subir Avatar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

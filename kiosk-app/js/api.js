@@ -296,10 +296,10 @@ class HolographicAPI {
     // ==========================================
 
     async startVideocall(callerId) {
-        // Crear oferta SDP (simplificada)
+        // Crear oferta SDP (simplificada por ahora)
         const offer = await this.createWebRTCOffer();
 
-        return this.request('/api/v1/videocall/start', {
+        const result = await this.request('/api/v1/videocall/start', {
             method: 'POST',
             body: JSON.stringify({
                 device_id: this.deviceId,
@@ -307,25 +307,83 @@ class HolographicAPI {
                 webrtc_offer: offer
             })
         });
+
+        // Guardar session_id
+        this.videocallSessionId = result.session_id;
+
+        // Validar que tenemos session_id antes de abrir WebSocket
+        if (!this.videocallSessionId) {
+            console.error('No se recibió session_id del servidor');
+            return result;
+        }
+
+        // Abrir WebSocket para streaming de frames
+        const wsProtocol = this.baseUrl.startsWith('https') ? 'wss' : 'ws';
+        const wsHost = this.baseUrl.replace(/^https?:\/\//, '');
+        const wsUrl = `${wsProtocol}://${wsHost}/api/v1/videocall/stream/${this.videocallSessionId}`;
+
+        this.streamSocket = new WebSocket(wsUrl);
+
+        this.streamSocket.onopen = () => {
+            console.log('WebSocket de streaming conectado');
+        };
+
+        this.streamSocket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log('Frame confirmado:', data.frame);
+            } catch (e) {
+                // Mensaje no es JSON, ignorar
+            }
+        };
+
+        this.streamSocket.onerror = (error) => {
+            console.error('Error en WebSocket:', error);
+        };
+
+        this.streamSocket.onclose = () => {
+            console.log('WebSocket de streaming cerrado');
+        };
+
+        return result;
     }
 
     async addIceCandidate(candidate) {
-        return this.request(`/api/v1/videocall/${this.sessionId}/ice`, {
+        const sessionId = this.videocallSessionId || this.sessionId;
+        return this.request(`/api/v1/videocall/${sessionId}/ice`, {
             method: 'POST',
             body: JSON.stringify(candidate)
         });
     }
 
     async endVideocall() {
-        if (this.sessionId) {
-            return this.request(`/api/v1/videocall/${this.sessionId}/end`, {
+        // Cerrar WebSocket
+        if (this.streamSocket) {
+            this.streamSocket.close();
+            this.streamSocket = null;
+        }
+
+        const sessionId = this.videocallSessionId || this.sessionId;
+        if (sessionId) {
+            const result = await this.request(`/api/v1/videocall/${sessionId}/end`, {
                 method: 'POST'
+            });
+            this.videocallSessionId = null;
+            return result;
+        }
+    }
+
+    sendFrame(frameBlob) {
+        if (this.streamSocket && this.streamSocket.readyState === WebSocket.OPEN) {
+            frameBlob.arrayBuffer().then(buffer => {
+                this.streamSocket.send(buffer);
             });
         }
     }
 
     async createWebRTCOffer() {
-        // Placeholder - en producción usar WebRTC real
+        // Por ahora usamos un SDP simplificado
+        // En producción se usaría RTCPeerConnection real
         return 'v=0\r\no=- 0 0 IN IP4 127.0.0.1\r\ns=holographic\r\n';
     }
 

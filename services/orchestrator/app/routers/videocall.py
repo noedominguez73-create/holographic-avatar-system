@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any
 import logging
 import json
 import asyncio
+import aiohttp
 
 from ..db.database import get_db
 from ..models import VideocallStartRequest, VideocallStartResponse, ICECandidate
@@ -83,6 +84,7 @@ async def start_videocall(
     # Guardar sesión en cache
     videocall_sessions[str(session_id)] = {
         "device_id": str(request.device_id),
+        "fan_ip": device.ip_address,
         "caller_id": request.caller_id,
         "status": "connecting",
         "offer": request.webrtc_offer,
@@ -227,41 +229,103 @@ async def _process_frame(frame_data: bytes, session: dict) -> bytes:
     """
     Procesar frame para el ventilador.
 
-    1. Decodificar imagen
-    2. Detectar rostro
-    3. Eliminar fondo (negro)
-    4. Recortar circular
-    5. Convertir a formato polar
+    1. Enviar a Frame Processor service
+    2. Recibe imagen procesada (fondo negro, circular, 256x256)
     """
     import cv2
     import numpy as np
 
-    # Decodificar
+    frame_processor_url = getattr(settings, 'FRAME_PROCESSOR_URL', 'http://frame-processor:8010')
+
+    try:
+        async with aiohttp.ClientSession() as http:
+            form = aiohttp.FormData()
+            form.add_field('frame', frame_data, filename='frame.jpg', content_type='image/jpeg')
+
+            async with http.post(
+                f'{frame_processor_url}/process',
+                data=form,
+                params={
+                    'target_size': 256,
+                    'circular_crop': 'true',
+                    'remove_background': 'true',
+                    'brightness_boost': 1.3,
+                    'contrast_boost': 1.2
+                },
+                timeout=aiohttp.ClientTimeout(total=0.5)
+            ) as resp:
+                if resp.status == 200:
+                    return await resp.read()
+
+    except Exception as e:
+        logger.warning(f"Frame processor no disponible, usando fallback: {e}")
+
+    # Fallback: procesamiento básico local
     nparr = np.frombuffer(frame_data, np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     if frame is None:
         return b''
 
-    # TODO: Llamar a Frame Processor service
-    # Por ahora hacer procesamiento básico
-
     # Resize a 256x256
     frame = cv2.resize(frame, (256, 256))
 
-    # Hacer fondo negro (placeholder - debería usar rembg)
-    # Por ahora solo retornar el frame
+    # Aplicar máscara circular básica
+    mask = np.zeros((256, 256), dtype=np.uint8)
+    cv2.circle(mask, (128, 128), 128, 255, -1)
+    frame = cv2.bitwise_and(frame, frame, mask=mask)
 
-    # Codificar de vuelta
-    _, encoded = cv2.imencode('.jpg', frame)
+    # Codificar como PNG
+    _, encoded = cv2.imencode('.png', frame)
     return encoded.tobytes()
 
 
 async def _send_to_fan(frame_data: bytes, session: dict):
-    """Enviar frame procesado al ventilador"""
-    # TODO: Llamar a Fan Driver service
-    # Por ahora solo simular delay
-    await asyncio.sleep(0.033)  # ~30 FPS
+    """
+    Enviar frame procesado al ventilador.
+
+    1. Convertir imagen a formato polar (polar-encoder)
+    2. Enviar datos polares al ventilador (fan-driver)
+    """
+    polar_encoder_url = getattr(settings, 'POLAR_ENCODER_URL', 'http://polar-encoder:8011')
+    fan_driver_url = getattr(settings, 'FAN_DRIVER_URL', 'http://fan-driver:8012')
+    fan_ip = session.get("fan_ip", "192.168.4.1")
+
+    if not frame_data:
+        return
+
+    try:
+        async with aiohttp.ClientSession() as http:
+            # Paso 1: Codificar a formato polar
+            form = aiohttp.FormData()
+            form.add_field('image', frame_data, filename='frame.png', content_type='image/png')
+
+            async with http.post(
+                f'{polar_encoder_url}/encode',
+                data=form,
+                timeout=aiohttp.ClientTimeout(total=1.0)
+            ) as resp:
+                if resp.status != 200:
+                    logger.warning(f"Polar encoder retornó {resp.status}")
+                    return
+                polar_data = await resp.read()
+
+            # Paso 2: Enviar al fan-driver
+            form2 = aiohttp.FormData()
+            form2.add_field('frame', polar_data, filename='frame.bin', content_type='application/octet-stream')
+
+            async with http.post(
+                f'{fan_driver_url}/stream/{fan_ip}',
+                data=form2,
+                timeout=aiohttp.ClientTimeout(total=1.0)
+            ) as resp:
+                if resp.status != 200:
+                    logger.warning(f"Fan driver retornó {resp.status}")
+
+    except aiohttp.ClientError as e:
+        logger.warning(f"Error enviando al ventilador: {e}")
+    except Exception as e:
+        logger.error(f"Error inesperado en _send_to_fan: {e}")
 
 
 def _create_sdp_answer(offer: str) -> str:

@@ -131,7 +131,21 @@ class KioskApp {
                 api.stopReceptionist();
                 break;
             case 'videocall':
+                // Limpiar completamente la videollamada
+                this.stopFrameCapture();
+                clearInterval(this.callTimerInterval);
+                if (this.localStream) {
+                    this.localStream.getTracks().forEach(t => t.stop());
+                    this.localStream = null;
+                }
                 api.endVideocall();
+                break;
+            case 'memorial':
+                // Limpiar cámara de selfie si está activa
+                if (this.selfieStream) {
+                    this.selfieStream.getTracks().forEach(t => t.stop());
+                    this.selfieStream = null;
+                }
                 break;
         }
         this.currentMode = null;
@@ -215,6 +229,22 @@ class KioskApp {
         document.getElementById('replay-avatar').addEventListener('click', () => {
             this.replayAvatar();
         });
+
+        document.getElementById('capture-photo-btn').addEventListener('click', () => {
+            this.capturePhoto();
+        });
+
+        document.getElementById('cancel-camera-btn').addEventListener('click', () => {
+            this.cancelCamera();
+        });
+
+        document.getElementById('save-selfie').addEventListener('click', () => {
+            this.saveSelfie();
+        });
+
+        document.getElementById('retake-selfie').addEventListener('click', () => {
+            this.takeSelfie();
+        });
     }
 
     initMemorialMode() {
@@ -272,7 +302,8 @@ class KioskApp {
             document.getElementById('processing-status').textContent = 'Proyectando en holograma...';
             document.getElementById('progress-fill').style.width = '90%';
 
-            await api.playMemorialAvatar(this.currentAvatarId);
+            const playResult = await api.playMemorialAvatar(this.currentAvatarId);
+            this.currentSessionId = playResult.session_id;
 
             document.getElementById('progress-fill').style.width = '100%';
 
@@ -316,14 +347,98 @@ class KioskApp {
     }
 
     async takeSelfie() {
-        // Acceder a cámara
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            // TODO: Implementar captura de foto
-            alert('Función de selfie próximamente');
-            stream.getTracks().forEach(t => t.stop());
+            // Mostrar contenedor de cámara
+            document.getElementById('camera-preview-container').classList.remove('hidden');
+            document.getElementById('selfie-preview').classList.add('hidden');
+
+            // Solicitar acceso a cámara frontal
+            this.selfieStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+
+            // Mostrar preview en vivo
+            const videoEl = document.getElementById('selfie-video');
+            videoEl.srcObject = this.selfieStream;
+
         } catch (e) {
-            alert('No se pudo acceder a la cámara');
+            console.error('Error accediendo a la cámara:', e);
+            alert('No se pudo acceder a la cámara. Verifica los permisos.');
+            document.getElementById('camera-preview-container').classList.add('hidden');
+        }
+    }
+
+    capturePhoto() {
+        const videoEl = document.getElementById('selfie-video');
+        const canvas = document.getElementById('selfie-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Validar que el video tenga dimensiones
+        if (!videoEl.videoWidth || !videoEl.videoHeight) {
+            alert('Espera a que la cámara esté lista');
+            return;
+        }
+
+        // Ajustar canvas al tamaño del video
+        canvas.width = videoEl.videoWidth;
+        canvas.height = videoEl.videoHeight;
+
+        // Capturar frame actual
+        ctx.drawImage(videoEl, 0, 0);
+
+        // Convertir a URL para mostrar
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+        // Mostrar foto capturada
+        document.getElementById('selfie-img').src = imageDataUrl;
+        document.getElementById('camera-preview-container').classList.add('hidden');
+        document.getElementById('selfie-preview').classList.remove('hidden');
+
+        // Detener stream de cámara
+        if (this.selfieStream) {
+            this.selfieStream.getTracks().forEach(t => t.stop());
+            this.selfieStream = null;
+        }
+
+        // Guardar el blob para subir al backend
+        canvas.toBlob((blob) => {
+            this.capturedSelfieBlob = blob;
+        }, 'image/jpeg', 0.9);
+    }
+
+    cancelCamera() {
+        if (this.selfieStream) {
+            this.selfieStream.getTracks().forEach(t => t.stop());
+            this.selfieStream = null;
+        }
+        document.getElementById('camera-preview-container').classList.add('hidden');
+    }
+
+    async saveSelfie() {
+        if (!this.capturedSelfieBlob || !this.currentSessionId) {
+            alert('No hay foto para guardar o sesión no válida');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('photo', this.capturedSelfieBlob, 'selfie.jpg');
+
+            const response = await fetch(
+                `${api.baseUrl}/api/v1/memorial/sessions/${this.currentSessionId}/capture-photo`,
+                { method: 'POST', body: formData }
+            );
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Foto guardada:', result.photo_url);
+                alert('Foto guardada exitosamente!');
+            } else {
+                throw new Error('Error al guardar');
+            }
+        } catch (e) {
+            console.error('Error guardando foto:', e);
+            alert('No se pudo guardar la foto.');
         }
     }
 
@@ -781,17 +896,54 @@ class KioskApp {
             document.getElementById('local-video').srcObject = stream;
             this.localStream = stream;
 
-            // Iniciar llamada
+            // Iniciar llamada (esto abre el WebSocket)
             await api.startVideocall(callerId);
 
             this.showVideocallState('active');
             this.startCallTimer();
+
+            // Iniciar captura y envío de frames
+            this.startFrameCapture();
 
         } catch (e) {
             console.error('Error iniciando videollamada:', e);
             alert('No se pudo iniciar la videollamada');
             this.showVideocallState('idle');
         }
+    }
+
+    startFrameCapture() {
+        // Crear canvas para capturar frames
+        this.frameCanvas = document.createElement('canvas');
+        this.frameCanvas.width = 256;
+        this.frameCanvas.height = 256;
+        this.frameCtx = this.frameCanvas.getContext('2d');
+
+        const videoEl = document.getElementById('local-video');
+
+        // Capturar y enviar frames cada 100ms (10 FPS)
+        this.frameInterval = setInterval(() => {
+            if (api.streamSocket && api.streamSocket.readyState === WebSocket.OPEN && videoEl.readyState >= 2) {
+                // Dibujar frame del video al canvas (redimensionado a 256x256)
+                this.frameCtx.drawImage(videoEl, 0, 0, 256, 256);
+
+                // Convertir a JPEG blob y enviar
+                this.frameCanvas.toBlob((blob) => {
+                    if (blob) {
+                        api.sendFrame(blob);
+                    }
+                }, 'image/jpeg', 0.7);
+            }
+        }, 100);
+    }
+
+    stopFrameCapture() {
+        if (this.frameInterval) {
+            clearInterval(this.frameInterval);
+            this.frameInterval = null;
+        }
+        this.frameCanvas = null;
+        this.frameCtx = null;
     }
 
     startCallTimer() {
@@ -805,6 +957,9 @@ class KioskApp {
     }
 
     async endVideocall() {
+        // Detener captura de frames
+        this.stopFrameCapture();
+
         clearInterval(this.callTimerInterval);
 
         if (this.localStream) {
