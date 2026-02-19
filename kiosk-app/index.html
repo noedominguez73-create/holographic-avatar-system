@@ -278,6 +278,15 @@
                     <span class="call-status">● En llamada</span>
                 </div>
                 <video id="local-video" autoplay muted playsinline></video>
+                <!-- Preview de simulación (lo que se enviaría al ventilador) -->
+                <div id="simulation-preview" class="simulation-preview hidden">
+                    <div class="simulation-label">Vista previa del ventilador</div>
+                    <canvas id="simulation-canvas" width="224" height="224"></canvas>
+                    <div class="simulation-info">
+                        <span id="sim-fps">0 FPS</span>
+                        <span id="sim-frames">0 frames</span>
+                    </div>
+                </div>
                 <div class="call-controls">
                     <button class="control-btn" id="toggle-mic">🎤</button>
                     <button class="control-btn end-call" id="end-call">📞</button>
@@ -305,6 +314,13 @@
                     <option value="es">Español</option>
                     <option value="en">English</option>
                 </select>
+            </div>
+            <div class="setting-group simulation-toggle">
+                <label>
+                    <input type="checkbox" id="simulation-mode">
+                    <span>Modo Simulación</span>
+                </label>
+                <p class="setting-hint">Prueba sin ventilador físico. Muestra preview de lo que se enviaría al dispositivo.</p>
             </div>
             <div class="modal-actions">
                 <a href="admin.html" class="btn-admin">⚙️ Panel de Administración</a>

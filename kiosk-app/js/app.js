@@ -28,6 +28,9 @@ class KioskApp {
         // Verificar conexión
         this.checkConnection();
 
+        // Inicializar modo simulación si está activo
+        this.updateSimulationIndicator();
+
         // Auto-refresh de estado
         setInterval(() => this.checkConnection(), 30000);
     }
@@ -896,8 +899,14 @@ class KioskApp {
             document.getElementById('local-video').srcObject = stream;
             this.localStream = stream;
 
-            // Iniciar llamada (esto abre el WebSocket)
-            await api.startVideocall(callerId);
+            if (this.settings.simulationMode) {
+                // MODO SIMULACIÓN: No conectar al backend, solo mostrar preview local
+                console.log('🔬 Modo Simulación activo - No se conectará al ventilador');
+                this.showSimulationPreview();
+            } else {
+                // MODO NORMAL: Iniciar llamada real (esto abre el WebSocket)
+                await api.startVideocall(callerId);
+            }
 
             this.showVideocallState('active');
             this.startCallTimer();
@@ -923,16 +932,24 @@ class KioskApp {
 
         // Capturar y enviar frames cada 100ms (10 FPS)
         this.frameInterval = setInterval(() => {
-            if (api.streamSocket && api.streamSocket.readyState === WebSocket.OPEN && videoEl.readyState >= 2) {
+            if (videoEl.readyState >= 2) {
                 // Dibujar frame del video al canvas (redimensionado a 256x256)
                 this.frameCtx.drawImage(videoEl, 0, 0, 256, 256);
 
-                // Convertir a JPEG blob y enviar
-                this.frameCanvas.toBlob((blob) => {
-                    if (blob) {
-                        api.sendFrame(blob);
+                if (this.settings.simulationMode) {
+                    // MODO SIMULACIÓN: Mostrar en preview local
+                    const frameData = this.frameCanvas.toDataURL('image/jpeg', 0.8);
+                    this.renderSimulationFrame(frameData);
+                } else {
+                    // MODO NORMAL: Enviar al WebSocket
+                    if (api.streamSocket && api.streamSocket.readyState === WebSocket.OPEN) {
+                        this.frameCanvas.toBlob((blob) => {
+                            if (blob) {
+                                api.sendFrame(blob);
+                            }
+                        }, 'image/jpeg', 0.7);
                     }
-                }, 'image/jpeg', 0.7);
+                }
             }
         }, 100);
     }
@@ -960,6 +977,9 @@ class KioskApp {
         // Detener captura de frames
         this.stopFrameCapture();
 
+        // Ocultar preview de simulación
+        this.hideSimulationPreview();
+
         clearInterval(this.callTimerInterval);
 
         if (this.localStream) {
@@ -967,7 +987,11 @@ class KioskApp {
             this.localStream = null;
         }
 
-        await api.endVideocall();
+        // Solo llamar al backend si no estamos en modo simulación
+        if (!this.settings.simulationMode) {
+            await api.endVideocall();
+        }
+
         this.showVideocallState('idle');
     }
 
@@ -988,7 +1012,8 @@ class KioskApp {
         const defaults = {
             apiUrl: defaultApiUrl,
             deviceIp: '192.168.4.1',
-            language: 'es'
+            language: 'es',
+            simulationMode: false
         };
 
         if (saved) {
@@ -1008,6 +1033,7 @@ class KioskApp {
         document.getElementById('api-url').value = this.settings.apiUrl;
         document.getElementById('device-ip').value = this.settings.deviceIp;
         document.getElementById('language').value = this.settings.language;
+        document.getElementById('simulation-mode').checked = this.settings.simulationMode || false;
         document.getElementById('settings-modal').classList.remove('hidden');
     }
 
@@ -1019,12 +1045,150 @@ class KioskApp {
         this.settings.apiUrl = document.getElementById('api-url').value;
         this.settings.deviceIp = document.getElementById('device-ip').value;
         this.settings.language = document.getElementById('language').value;
+        this.settings.simulationMode = document.getElementById('simulation-mode').checked;
 
         localStorage.setItem('holographic-settings', JSON.stringify(this.settings));
         api.setBaseUrl(this.settings.apiUrl);
 
+        // Mostrar/ocultar indicador de simulación
+        this.updateSimulationIndicator();
+
         this.hideSettings();
         this.checkConnection();
+    }
+
+    // ==========================================
+    // SIMULATION MODE
+    // ==========================================
+
+    updateSimulationIndicator() {
+        let indicator = document.getElementById('simulation-indicator');
+
+        if (this.settings.simulationMode) {
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'simulation-indicator';
+                indicator.className = 'simulation-active-indicator';
+                indicator.textContent = '🔬 MODO SIMULACIÓN';
+                document.body.appendChild(indicator);
+            }
+            indicator.style.display = 'block';
+        } else if (indicator) {
+            indicator.style.display = 'none';
+        }
+    }
+
+    initSimulationCanvas() {
+        this.simCanvas = document.getElementById('simulation-canvas');
+        this.simCtx = this.simCanvas ? this.simCanvas.getContext('2d') : null;
+        this.simFrameCount = 0;
+        this.simLastTime = performance.now();
+        this.simFps = 0;
+    }
+
+    showSimulationPreview() {
+        const preview = document.getElementById('simulation-preview');
+        if (preview && this.settings.simulationMode) {
+            preview.classList.remove('hidden');
+            this.initSimulationCanvas();
+        }
+    }
+
+    hideSimulationPreview() {
+        const preview = document.getElementById('simulation-preview');
+        if (preview) {
+            preview.classList.add('hidden');
+        }
+    }
+
+    renderSimulationFrame(imageData) {
+        if (!this.simCtx || !this.settings.simulationMode) return;
+
+        // Crear imagen desde los datos
+        const img = new Image();
+        img.onload = () => {
+            // Limpiar canvas
+            this.simCtx.fillStyle = '#000';
+            this.simCtx.fillRect(0, 0, 224, 224);
+
+            // Dibujar frame circular (simula el ventilador)
+            this.simCtx.save();
+            this.simCtx.beginPath();
+            this.simCtx.arc(112, 112, 112, 0, Math.PI * 2);
+            this.simCtx.clip();
+            this.simCtx.drawImage(img, 0, 0, 224, 224);
+            this.simCtx.restore();
+
+            // Actualizar contador de frames
+            this.simFrameCount++;
+            const now = performance.now();
+            if (now - this.simLastTime >= 1000) {
+                this.simFps = this.simFrameCount;
+                this.simFrameCount = 0;
+                this.simLastTime = now;
+            }
+
+            // Actualizar UI
+            const fpsEl = document.getElementById('sim-fps');
+            const framesEl = document.getElementById('sim-frames');
+            if (fpsEl) fpsEl.textContent = `${this.simFps} FPS`;
+            if (framesEl) framesEl.textContent = `${this.totalSimFrames || 0} frames`;
+            this.totalSimFrames = (this.totalSimFrames || 0) + 1;
+        };
+        img.src = imageData;
+    }
+
+    // Capturar frame y procesarlo en modo simulación
+    async captureAndSimulateFrame() {
+        if (!this.localStream || !this.settings.simulationMode) return;
+
+        const video = document.getElementById('local-video');
+        if (!video || video.videoWidth === 0) return;
+
+        // Crear canvas temporal para capturar frame
+        const captureCanvas = document.createElement('canvas');
+        captureCanvas.width = 224;
+        captureCanvas.height = 224;
+        const ctx = captureCanvas.getContext('2d');
+
+        // Calcular crop cuadrado centrado
+        const size = Math.min(video.videoWidth, video.videoHeight);
+        const sx = (video.videoWidth - size) / 2;
+        const sy = (video.videoHeight - size) / 2;
+
+        // Dibujar frame
+        ctx.drawImage(video, sx, sy, size, size, 0, 0, 224, 224);
+
+        // Obtener como base64
+        const frameData = captureCanvas.toDataURL('image/jpeg', 0.8);
+
+        // Mostrar en preview de simulación
+        this.renderSimulationFrame(frameData);
+
+        // Opcionalmente enviar al backend para procesamiento
+        if (this.settings.simulationMode) {
+            try {
+                // Enviar al frame-processor para ver el resultado procesado
+                const response = await fetch(`${this.settings.apiUrl}/api/v1/simulate/frame`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        frame_base64: frameData.split(',')[1],
+                        process: true
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.processed_frame) {
+                        this.renderSimulationFrame('data:image/jpeg;base64,' + result.processed_frame);
+                    }
+                }
+            } catch (e) {
+                // Si falla el procesamiento, solo mostrar el frame original
+                console.log('Simulación local (sin procesamiento backend)');
+            }
+        }
     }
 }
 
