@@ -977,11 +977,31 @@ class KioskApp {
 
     loadSettings() {
         const saved = localStorage.getItem('holographic-settings');
-        return saved ? JSON.parse(saved) : {
-            apiUrl: 'http://localhost:8000',
+
+        // Detectar URL base automáticamente
+        // Si estamos en Railway/producción, usar la misma URL
+        // Si estamos en localhost (desarrollo), usar localhost:8000
+        const isProduction = !window.location.hostname.includes('localhost') &&
+                            !window.location.hostname.includes('127.0.0.1');
+        const defaultApiUrl = isProduction ? window.location.origin : 'http://localhost:8000';
+
+        const defaults = {
+            apiUrl: defaultApiUrl,
             deviceIp: '192.168.4.1',
             language: 'es'
         };
+
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            // Si la URL guardada es localhost pero estamos en producción, actualizar
+            if (isProduction && parsed.apiUrl.includes('localhost')) {
+                parsed.apiUrl = defaultApiUrl;
+                localStorage.setItem('holographic-settings', JSON.stringify(parsed));
+            }
+            return parsed;
+        }
+
+        return defaults;
     }
 
     showSettings() {
