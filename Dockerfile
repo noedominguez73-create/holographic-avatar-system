@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY services/orchestrator/app ./app
 COPY integrations ./integrations
 
+# Copiar kiosk-app (frontend)
+COPY kiosk-app ./kiosk-app
+
 # Puerto
 ENV PORT=8000
 EXPOSE 8000

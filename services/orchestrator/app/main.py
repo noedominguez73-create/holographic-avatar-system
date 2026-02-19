@@ -3,9 +3,12 @@ Holographic Avatar System - Orchestrator Service
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 import logging
 import os
+from pathlib import Path
 
 from .config import settings
 from .routers import sessions, modes, content, devices, locations
@@ -64,14 +67,60 @@ app.include_router(menu.router, prefix="/api/v1/menu", tags=["Menú"])
 app.include_router(catalog.router, prefix="/api/v1/catalog", tags=["Catálogo"])
 app.include_router(videocall.router, prefix="/api/v1/videocall", tags=["Videollamada"])
 
+# Determinar ruta del kiosk-app
+# En desarrollo: ../../../kiosk-app relativo a este archivo
+# En producción (Railway): /app/kiosk-app
+KIOSK_APP_PATH = None
+
+# Intentar encontrar kiosk-app
+possible_paths = [
+    Path("/app/kiosk-app"),  # Railway
+    Path(__file__).parent.parent.parent.parent / "kiosk-app",  # Local dev
+    Path.cwd() / "kiosk-app",  # Current directory
+]
+
+for path in possible_paths:
+    if path.exists() and (path / "index.html").exists():
+        KIOSK_APP_PATH = path
+        logger.info(f"Kiosk app encontrado en: {KIOSK_APP_PATH}")
+        break
+
+if KIOSK_APP_PATH:
+    # Montar archivos estáticos (CSS, JS, imágenes)
+    app.mount("/css", StaticFiles(directory=KIOSK_APP_PATH / "css"), name="css")
+    app.mount("/js", StaticFiles(directory=KIOSK_APP_PATH / "js"), name="js")
+    if (KIOSK_APP_PATH / "images").exists():
+        app.mount("/images", StaticFiles(directory=KIOSK_APP_PATH / "images"), name="images")
+    if (KIOSK_APP_PATH / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=KIOSK_APP_PATH / "assets"), name="assets")
+
 
 @app.get("/")
 async def root():
+    """Serve kiosk app or API info"""
+    if KIOSK_APP_PATH and (KIOSK_APP_PATH / "index.html").exists():
+        return FileResponse(KIOSK_APP_PATH / "index.html")
     return {
         "service": "Holographic Avatar System",
         "version": "1.0.0",
         "status": "running"
     }
+
+
+@app.get("/admin.html")
+async def admin_page():
+    """Serve admin dashboard"""
+    if KIOSK_APP_PATH and (KIOSK_APP_PATH / "admin.html").exists():
+        return FileResponse(KIOSK_APP_PATH / "admin.html")
+    return {"error": "Admin page not found"}
+
+
+@app.get("/index.html")
+async def index_page():
+    """Serve main kiosk app"""
+    if KIOSK_APP_PATH and (KIOSK_APP_PATH / "index.html").exists():
+        return FileResponse(KIOSK_APP_PATH / "index.html")
+    return {"error": "Index page not found"}
 
 
 @app.get("/health")
